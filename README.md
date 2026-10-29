@@ -42,9 +42,7 @@ power-cycle, then falls back into setup mode. That is exactly the symptom the ap
 |---|---|---|---|
 | Edifier D32 | p20.55.0 (AirPlay SDK) | works, 33 s end to end | setup server accepts one TCP connection; `/configured` on port 5001 |
 
-Got it working (or not) on something else? Open an issue or PR with the device, firmware and
-the log, and it goes into this table. Any accessory advertising `_mfi-config._tcp` on its setup
-AP is a candidate.
+Other device? Open an issue with model, firmware and the log.
 
 ## Quick start
 
@@ -92,13 +90,22 @@ variable `WAC_<KEY>`. The example file documents all keys. The ones you will tou
 | `CONFIRM_PORTS`, `WAIT_SECONDS` | where and how long to try the final `/configured` |
 | `INSECURE` | skip MFi certificate validation if your speaker's chain is unknown |
 
-Flags: `-c <file>`, `-ssid`, `-name`, `-device host:port`, `-insecure`, `-already-on-ap`, and
-`-check` to print the resolved configuration (password only as a length). The password is
-deliberately not a flag, so it never appears in `ps` or shell history.
+Flags:
 
-**Hooks** are shell commands that receive `WAC_SSID`, `WAC_AP_PATTERN`, `WAC_IFACE` and
-`WAC_NM_CONNECTION`. NetworkManager hooks ship in `hooks/networkmanager/`; ones for `iwd` or
-`wpa_cli` are a few lines, PRs welcome. With no hooks the program stops twice and waits for Enter.
+| Flag | Purpose |
+|---|---|
+| `-c <file>` | config file (default `airplay-wifi-setup.conf`) |
+| `-ssid`, `-name` | override SSID / speaker name |
+| `-device host:port` | skip mDNS, talk to this WAC server |
+| `-insecure` | skip MFi certificate validation |
+| `-already-on-ap` | you joined the setup AP yourself |
+| `-check` | print the resolved config (password as length only) and exit |
+
+There is no password flag on purpose: it would end up in `ps` and shell history.
+
+Hooks are shell commands that get `WAC_SSID`, `WAC_AP_PATTERN`, `WAC_IFACE`, `WAC_NM_CONNECTION`
+in their environment. NetworkManager ones are in `hooks/networkmanager/`. No hooks configured =
+the program pauses twice and waits for Enter while you switch WiFi by hand.
 
 ## Things we learned the hard way
 
