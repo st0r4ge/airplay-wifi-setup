@@ -1,0 +1,25 @@
+# airplay-wifi-setup configuration. Copy to airplay-wifi-setup.conf and edit.
+# Every key can also be given as environment variable WAC_<KEY>.
+
+# --- target WiFi (pick ONE way to supply the password) -----------------------
+SSID="MyHomeWifi"
+PASSWORD="correct horse battery staple"
+# PASSWORD_CMD="pass show wifi/home"                 # any command that prints the password
+# NM_CONNECTION="MyHomeWifi"                         # read SSID + PSK from NetworkManager instead
+
+# --- accessory ---------------------------------------------------------------
+DEVICE_NAME="Living room speaker"     # name the accessory announces afterwards
+# DEVICE="192.168.0.1:5000"           # WAC server on the setup AP; default: discover via mDNS
+# INSECURE=false                       # true = skip MFi certificate validation
+
+# --- confirmation phase ------------------------------------------------------
+# After joining your WiFi the accessory re-opens its WAC server, often on another
+# port, and only keeps the credentials once it receives POST /configured there.
+CONFIRM_PORTS=5001,5000,5002,5003,5004,5005
+WAIT_SECONDS=300
+# IFACE=wlan0                          # interface for the ARP fallback; default: default route
+
+# --- how to switch WiFi (leave empty to be prompted and do it by hand) ------
+AP_PATTERN="edifier|d32"               # regex for the setup AP's SSID, used by the hook
+HOOK_JOIN_AP="hooks/networkmanager/join-ap.sh"
+HOOK_JOIN_HOME="hooks/networkmanager/join-home.sh"

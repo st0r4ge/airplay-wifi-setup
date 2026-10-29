@@ -1,0 +1,80 @@
+diff --git a/waclib/client.go b/waclib/client.go
+index 8abd130..12b62fe 100644
+--- a/waclib/client.go
++++ b/waclib/client.go
+@@ -1,6 +1,7 @@
+ package waclib
+ 
+ import (
++	"bufio"
+ 	"bytes"
+ 	"crypto/cipher"
+ 	"crypto/rand"
+@@ -18,6 +19,11 @@ import (
+ type WACClient struct {
+ 	client http.Client
+ 
++	// Persistent connection: some accessories accept only a single TCP
++	// connection during the whole WAC session.
++	conn   net.Conn
++	reader *bufio.Reader
++
+ 	Insecure bool
+ }
+ 
+@@ -50,8 +56,26 @@ func (c *WACClient) exchange(destination string, endpoint string, encrypt cipher
+ 	}
+ 	req.Header.Set("Content-Type", "application/octet-stream")
+ 
+-	resp, err := c.client.Do(req)
++	req.Header.Set("Connection", "keep-alive")
++	req.Host = destination
++	req.ContentLength = int64(len(request))
++
++	if c.conn == nil {
++		conn, err := net.DialTimeout("tcp", destination, 5*time.Second)
++		if err != nil {
++			return nil, err
++		}
++		c.conn = conn
++		c.reader = bufio.NewReader(conn)
++	}
++	c.conn.SetDeadline(time.Now().Add(15 * time.Second))
++	if err := req.Write(c.conn); err != nil {
++		c.Close()
++		return nil, err
++	}
++	resp, err := http.ReadResponse(c.reader, req)
+ 	if err != nil {
++		c.Close()
+ 		return nil, err
+ 	}
+ 	defer resp.Body.Close()
+@@ -81,6 +105,15 @@ func (c *WACClient) exchangeMsg(destination string, endpoint string, encrypt cip
+ 	return dest.Unmarshal(data)
+ }
+ 
++// Close drops the persistent connection (e.g. after the device switched network).
++func (c *WACClient) Close() {
++	if c.conn != nil {
++		c.conn.Close()
++	}
++	c.conn = nil
++	c.reader = nil
++}
++
+ func (c *WACClient) Configure(destination string, config ConfigRequest) (*ConfigResponse, error) {
+ 	c25519 := ecdh.X25519()
+ 
+diff --git a/waclib/examples/client/client.go b/waclib/examples/client/client.go
+index e4b111e..e76fbc6 100644
+--- a/waclib/examples/client/client.go
++++ b/waclib/examples/client/client.go
+@@ -53,6 +53,7 @@ func main() {
+ 	}
+ 
+ 	log.Println("Device configured!")
++	client.Close()
+ 
+ 	if response != nil {
+ 		log.Println("Got extended response:")

@@ -1,0 +1,4 @@
+build/
+bin/
+airplay-wifi-setup.conf
+*.log
